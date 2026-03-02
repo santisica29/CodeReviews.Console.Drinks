@@ -1,7 +1,6 @@
 ﻿using DrinksInfo.Controllers;
 using DrinksInfo.Models;
 using DrinksInfo.Services;
-using DrinksInfo.Validation;
 using Spectre.Console;
 
 namespace DrinksInfo.UI;
@@ -9,15 +8,18 @@ namespace DrinksInfo.UI;
 internal class UserInput
 {
     DrinksService drinksService = new();
-    DrinkController drinkController = new();    
+    DrinkController drinkController = new();
 
     internal async Task MainMenu()
     {
         bool appRunning = true;
         while (appRunning)
         {
+            Console.Clear();
+
             Console.WriteLine("1 - See drinks from cocktail API");
             Console.WriteLine("2 - See your favorite drinks saved in the database");
+            Console.WriteLine("3 - See how many times the drinks have been viewed");
             Console.WriteLine("0 - Exit");
 
             string input = Console.ReadLine();
@@ -35,6 +37,9 @@ internal class UserInput
                 case "2":
                     ShowFavoriteDrinks();
                     break;
+                case "3":
+                    ShowViewedDrinks();
+                    break;
                 case "0":
                     appRunning = false;
                     return;
@@ -42,9 +47,34 @@ internal class UserInput
         }
     }
 
+    internal void ShowViewedDrinks()
+    {
+        var list = drinkController.GetViewedDrinks();
+
+        if (list == null)
+        {
+            AnsiConsole.MarkupLine("[red]no data found[/]");
+            Console.ReadKey();
+            return;
+        }
+
+        TableVisualisation.PrintViewedDrinks(list);
+
+        Console.WriteLine("Press any key to go back");
+        Console.ReadKey();
+
+    }
+
     internal void ShowFavoriteDrinks()
     {
+        Console.Clear();
+
         var list = drinkController.Get();
+
+        if (list == null)
+        {
+            AnsiConsole.MarkupLine("[red]There are not items in the list[/]");
+        }
 
         TableVisualisation.PrintDrinkTable(list);
 
@@ -59,25 +89,24 @@ internal class UserInput
 
             var categories = await drinksService.GetCategories();
 
-            TableVisualisation.PrintCategoryTable(categories);
-            
-            Console.WriteLine("Choose a category:");
-            string category = Console.ReadLine();
+            var category = AnsiConsole.Prompt(new SelectionPrompt<Category>()
+            .Title("Choose a category")
+            .UseConverter(x => x.CategoryName)
+            .AddChoices(categories)
+            );
 
-            while (!Validator.IsStringValid(category))
+            while (!categories.Any(x => string.Equals(x.CategoryName, category.CategoryName, StringComparison.OrdinalIgnoreCase)))
             {
-                Console.WriteLine("\nInvalid category");
-                category = Console.ReadLine();
+                AnsiConsole.MarkupLine("[red]Category doesn't exist. Try again[/]");
+
+                category = AnsiConsole.Prompt(new SelectionPrompt<Category>()
+            .Title("Choose a category")
+            .UseConverter(x => x.CategoryName)
+            .AddChoices(categories)
+            );
             }
 
-            if (!categories.Any(x => string.Equals(x.CategoryName, category, StringComparison.OrdinalIgnoreCase)))
-            {
-                Console.WriteLine("Category doesn't exist");
-                await GetCategoriesInput();
-                return;
-            }
-
-            await GetDrinksInput(category);
+            await GetDrinksInput(category.CategoryName);
         }
         catch (Exception ex)
         {
@@ -89,33 +118,16 @@ internal class UserInput
     {
         try
         {
+            Console.Clear();
+
             var drinks = await drinksService.GetDrinksByCategory(category);
 
-            if (drinks == null)
-            {
-                Console.WriteLine("No drinks");
-                Console.ReadKey();
-                return;
-            }
+            var drink = AnsiConsole.Prompt(new SelectionPrompt<DrinkFromCategory>()
+                    .Title("Choose a drink")
+                    .UseConverter(x => x.Name)
+                    .AddChoices(drinks));
 
-            TableVisualisation.PrintDrinkFromCategories(drinks);
-
-            Console.WriteLine("Choose a drink by typing it's id or go back to main menu by typing 0:");
-            string drinkId = Console.ReadLine();
-
-            if (drinkId == "0")
-            {
-                await MainMenu();
-                return;
-            }
-
-            while (!Validator.IsIdValid(drinkId))
-            {
-                Console.WriteLine("\nInvalid drink");
-                drinkId = Console.ReadLine();
-            }
-
-            if (!drinks.Any(x => x.Id == drinkId))
+            if (!drinks.Any(x => x.Id == drink.Id))
             {
                 Console.WriteLine("Category doesn't exist. Press any key to try again.");
                 Console.ReadKey();
@@ -123,12 +135,17 @@ internal class UserInput
                 return;
             }
 
-            var drinkDetail = await drinksService.GetDrink(drinkId);
+            var drinkDetail = await drinksService.GetDrink(drink.Id);
 
             var list = new List<Drink>()
             {
                 drinkDetail
             };
+
+            //adds drink to viewed drinks table
+            drinkController.AddViewDrink(drinkDetail.DrinkName);
+
+            Console.Clear();
 
             TableVisualisation.PrintDrinkTable(list);
 
@@ -149,7 +166,7 @@ internal class UserInput
             Console.WriteLine("Press any key to go back to main menu.");
             Console.ReadKey();
 
-            if (!Console.KeyAvailable) await MainMenu();
+            if (!Console.KeyAvailable) return;
         }
         catch (Exception ex)
         {

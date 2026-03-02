@@ -3,6 +3,7 @@ using System.Web;
 using System.Text.Json;
 
 namespace DrinksInfo.Services;
+
 internal class DrinksService
 {
     private static readonly HttpClient _client = new();
