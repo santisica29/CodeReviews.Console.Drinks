@@ -4,6 +4,8 @@ Console App Project to learn how to consume and API using HTTP requests with C# 
 
 It consumes the cocktail API, gets you drinks ranging from different categories, allows you to see the details of how to prepare said drink, if it's alcoholic or not and you could even save it to your favorite drinks database!
 
+Also implements a counter (using sql server) to see which drinks are the most viewed.
+
 ## Requirements
 
 - Use the cocktail API to retrieve information about drinks
@@ -28,9 +30,9 @@ It consumes the cocktail API, gets you drinks ranging from different categories,
 	- The program uses a SQL Server db connection to store your favorite drinks
 	- If no database exists, or the correct table does not exist they will be created on program start.
 
-- Console based UI where users choose to see the drinks from the API or their favorite drinks saved.
+- Console based UI where users choose to see the drinks from the API, navigate through different categories and save that drink to your favorite drink database.
 
-- Uses Spectre.Console to show the data in a nicer way using it's table feature.
+- Uses Spectre.Console to show the data in a nicer way using it's table feature and menu options.
 
 ## What I've Learned
 
@@ -38,6 +40,7 @@ It consumes the cocktail API, gets you drinks ranging from different categories,
 - More practice with SQL Server.
 - About Json Property Names annotations that allows you to match your column with a different name than the API's object.
 - How the async/await functions work with each other.
+- Figure out how to make a counter to see which drink are viewed.
 
 ## Resources
 
